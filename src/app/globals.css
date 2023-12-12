@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.container-class {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 100%; /* Let it be 100% on smaller screens */
+}
+
+@media (min-width: 769px) {
+  .container-class {
+    max-width: 55%; /* Restrict to 60% on larger screens */
+  }
+}
+
+/*
+ * FontAwesome on page refresh and after some interaction oversizing issue workaround.
+ * @see https://github.com/FortAwesome/react-fontawesome/issues/134
+ */
+ .svg-inline--fa {
+  height: 1em;
+  vertical-align: -0.125em;
+}
+
+.fa-user-icon {
+  margin-right: 0px; /* Adjust the value as needed */
+}
+
+.fa-robot-icon {
+  margin-left: 2px; /* Adjust the value as needed */
+}
