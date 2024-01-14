@@ -5,18 +5,22 @@ from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from openai import OpenAI
+from supabase import create_client, Client
 import time
 import json
 import os
 
-app = FastAPI(docs_url="/api/docs", openapi_url="/api/openapi.json")
-
 # Load the .env file
 load_dotenv()
 
+# Initialize Supabase client
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_key = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(supabase_url, supabase_key)
+
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Load the .env file at the beginning, to make sure the OPENAI_API_KEY is loaded
+app = FastAPI(docs_url="/api/docs", openapi_url="/api/openapi.json")
 
 @app.get("/api/healthchecker")
 def healthchecker():
