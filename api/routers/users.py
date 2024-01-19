@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from ..models import UserCreate, UserResponse, UserUpdate
-from ..crud import create_user, get_user, update_user, delete_user
+from ..models import UserCreate, UserResponse, UserUpdate, UserLogin
+from ..crud import create_user, get_user, update_user, delete_user, authenticate_user
 from ..dependencies import get_current_user, hash_password
 
 router = APIRouter()
@@ -16,10 +16,16 @@ async def register_user(user: UserCreate):
     return created_user
 
 @router.post("/login")
-async def login_user(email: str, password: str):
-    # Implement your logic for user login
-    # This typically involves verifying the email and password, and returning a JWT token
-    ...
+async def login_user(form_data: UserLogin):
+    user = await authenticate_user(form_data.email, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = create_access_token(data={"sub": user.email})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/users/{user_id}", response_model=UserResponse)
 async def read_user(user_id: str):

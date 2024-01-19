@@ -13,6 +13,18 @@ async def create_user(user: UserCreate) -> UserResponse:
         raise HTTPException(status_code=400, detail=response.error.message)
     return UserResponse(**response.data[0])
 
+async def authenticate_user(email: str, password: str):
+    user = await supabase.table('users').select('*').eq('email', email).single().execute()
+    if not user.data:
+        return False
+    if not verify_password(password, user.data['password_hash']):  # Assume verify_password is defined
+        return False
+    return user.data
+
+# Placeholder for verify_password function - replace with actual password verification
+def verify_password(plain_password, hashed_password):
+    return hash_password(plain_password) == hashed_password  # Replace with actual verification logic
+
 async def get_user(user_id: str) -> UserResponse:
     response = await supabase.table('users').select('*').eq('user_id', user_id).single().execute()
     if response.error:
