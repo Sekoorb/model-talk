@@ -1,7 +1,9 @@
 from typing import List
-from .models import UserCreate, UserResponse, ThreadCreate, ThreadResponse, MessageCreate, MessageResponse, CSVFileCreate, CSVFileResponse
+from .models import UserCreate, UserResponse, ThreadCreate, ThreadResponse, MessageCreate, MessageResponse, ModelSchemaUpload, ModelSchemaResponse
 from .dependencies import supabase
 from fastapi import HTTPException
+from time import datetime
+
 
 # User CRUD operations
 async def create_user(user: UserCreate) -> UserResponse:
@@ -46,9 +48,25 @@ async def get_threads_for_user(user_id: str) -> List[ThreadResponse]:
         raise HTTPException(status_code=404, detail="Threads not found")
     return [ThreadResponse(**thread) for thread in response.data]
 
-# Message CRUD operations
-async def create_message(message: MessageCreate) -> MessageResponse:
-    data = message.model_dump()
+async def delete_thread(thread_id: str, user_id: str):
+    # First, verify the thread belongs to the user
+    thread = await supabase.table('threads').select('*').eq('thread_id', thread_id).single().execute()
+    if thread.error:
+        return False  # Thread not found or other error
+    if thread.data['user_id'] != user_id:
+        return False  # Thread does not belong to the user
+    # If verification passes, proceed to delete
+    response = await supabase.table('threads').delete().eq('thread_id', thread_id).execute()
+    if response.error:
+        return False  # Error during deletion
+    return True  # Successfully deleted
+
+async def create_message(thread_id: str, sender: str, content: str) -> MessageResponse:
+    data = {
+        "thread_id": thread_id,
+        "sender": sender,
+        "content": content
+    }
     response = await supabase.table('messages').insert(data).execute()
     if response.error:
         raise HTTPException(status_code=400, detail=response.error.message)
@@ -56,24 +74,42 @@ async def create_message(message: MessageCreate) -> MessageResponse:
 
 async def get_messages_for_thread(thread_id: str) -> List[MessageResponse]:
     response = await supabase.table('messages').select('*').eq('thread_id', thread_id).execute()
-    if response.error:
+    if response.error or not response.data:
         raise HTTPException(status_code=404, detail="Messages not found")
     return [MessageResponse(**message) for message in response.data]
 
-# CSV File CRUD operations
-async def upload_csv_file(csv_file: CSVFileCreate, user_id: str) -> CSVFileResponse:
-    data = csv_file.model_dump()
-    data['user_id'] = user_id
-    response = await supabase.table('csv_files').insert(data).execute()
-    if response.error:
-        raise HTTPException(status_code=400, detail=response.error.message)
-    return CSVFileResponse(**response.data[0])
 
-async def get_csv_files_for_user(user_id: str) -> List[CSVFileResponse]:
-    response = await supabase.table('csv_files').select('*').eq('user_id', user_id).execute()
+# CSV File CRUD operations
+async def save_model_schema(user_id: str, filename: str, content: bytes) -> bool:
+    # Convert bytes content to a string for database storage
+    content_str = content.decode('utf-8')
+    
+    # Prepare the data for insertion
+    data = {
+        "user_id": user_id,
+        "filename": filename,
+        "content": content_str,
+        "upload_timestamp": datetime.utcnow().isoformat()  # Assuming you want to store the upload time
+    }
+    
+    # Insert the data into the 'model_schemas' table (or whatever your table is named)
+    response = await supabase.table('model_schemas').insert(data).execute()
+    
     if response.error:
-        raise HTTPException(status_code=404, detail="CSV files not found")
-    return [CSVFileResponse(**file) for file in response.data]
+        print(response.error)  # Log the error for debugging
+        return False  # Indicate failure
+    
+    return True  # Indicate success
+
+async def get_model_schemas_for_user(user_id: str):
+    response = await supabase.table('model_schemas').select('*').eq('user_id', user_id).execute()
+    
+    if response.error:
+        print(response.error)  # Log the error for debugging
+        return None  # Indicate failure or no data found
+    
+    return response.data  # Return the list of model schemas
+
 
 # Replace this placeholder function with your actual password hashing mechanism
 def hash_password(password: str) -> str:

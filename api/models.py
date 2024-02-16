@@ -1,6 +1,7 @@
-from pydantic import BaseModel, UUID4, EmailStr
+from pydantic import BaseModel, UUID4, EmailStr, Field
 from typing import Optional
 from datetime import datetime
+from fastapi import UploadFile
 
 # User Models
 class UserBase(BaseModel):
@@ -51,17 +52,18 @@ class MessageResponse(MessageCreate):
     class Config:
         orm_mode = True
 
-# CSV File Models
-class CSVFileCreate(BaseModel):
-    file_name: str
-    file_content: str
+# Model Schema Upload Models
+class ModelSchemaUpload(BaseModel):
+    schema_name: Optional[str] = Field(None, title="Name of the Model Schema")
+    file: UploadFile = Field(..., title="CSV File containing the Model Schema")
 
-class CSVFileResponse(CSVFileCreate):
-    file_id: UUID4
+class ModelSchemaResponse(BaseModel):
+    schema_id: UUID4
     user_id: UUID4
+    schema_name: Optional[str]
+    file_name: str
     upload_timestamp: datetime
-    analysis_status: str
-    analysis_results: Optional[str]
+    content_type: str
 
     class Config:
         orm_mode = True

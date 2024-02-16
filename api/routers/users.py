@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from ..models import UserCreate, UserResponse, UserUpdate, UserLogin
 from ..crud import create_user, get_user, update_user, delete_user, authenticate_user
-from ..dependencies import get_current_user, hash_password
+from ..dependencies import get_current_user, hash_password, create_access_token
 
 router = APIRouter()
 
